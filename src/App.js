@@ -35,6 +35,15 @@ const App = () => {
     }
   };
   
+  useEffect(() => {
+    if (currentInputMode === 'french' && frenchInputRef.current) {
+      frenchInputRef.current.focus();
+    } else if (currentInputMode === 'english' && englishInputRef.current) {
+      englishInputRef.current.focus();
+    }
+  }, [currentInputMode]);
+
+  
   // Read and parse the CSV file
   const readFile = async (uploadedFile) => {
     try {
@@ -460,6 +469,25 @@ const App = () => {
     saveStats();
     setShowPerformanceGraph(true);
   };
+
+  // Then, your useEffects come afterward
+useEffect(() => {
+  const handleEnterKey = (event) => {
+    if (event.key === 'Enter') {
+      if (showEnglishAnswer && !hasCompletedRound) {
+        event.preventDefault();
+        nextCard();
+      } else if (hasCompletedRound) {
+        event.preventDefault();
+        showGraph();
+      }
+    }
+  };
+
+  window.addEventListener('keydown', handleEnterKey);
+
+  return () => window.removeEventListener('keydown', handleEnterKey);
+}, [showEnglishAnswer, hasCompletedRound, nextCard, showGraph]);
   
   // Go back to home screen
   const goToHomeScreen = () => {
