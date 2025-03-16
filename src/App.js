@@ -115,11 +115,11 @@ const App = () => {
     setShowPerformanceGraph(false);
     
     // Focus on the French input
-    setTimeout(() => {
-      if (frenchInputRef.current) {
-        frenchInputRef.current.focus();
-      }
-    }, 100);
+    // setTimeout(() => {
+    //   if (frenchInputRef.current) {
+    //     frenchInputRef.current.focus();
+    //   }
+    // }, 100);
     
     // Speak the French word
     speakFrenchWord(arrangedCards[0].french);
@@ -167,27 +167,55 @@ const App = () => {
     }
   };
   
-  // Handle French input submission
+  // // Handle French input submission
+  // const handleFrenchSubmit = (e) => {
+  //   if (e) e.preventDefault();
+    
+  //   // Skip if we've already shown the answer
+  //   if (showFrenchAnswer) return;
+    
+  //   const currentCard = flashcards[currentCardIndex];
+  //   const isCorrect = frenchInput.trim().toLowerCase() === currentCard.french.trim().toLowerCase();
+    
+  //   console.log("French check:", {
+  //     input: frenchInput,
+  //     correct: currentCard.french,
+  //     isCorrect: isCorrect
+  //   });
+    
+  //   // Update states to show feedback
+  //   setIsFrenchCorrect(isCorrect);
+  //   setShowFrenchAnswer(true);
+    
+  //   // Update stats
+  //   const updatedStats = [...stats];
+  //   if (isCorrect) {
+  //     updatedStats[currentCard.id].frenchCorrect += 1;
+  //   } else {
+  //     updatedStats[currentCard.id].frenchIncorrect += 1;
+  //   }
+  //   setStats(updatedStats);
+    
+  //   // Move to English input after a short delay
+  //   setTimeout(() => {
+  //     setCurrentInputMode('english');
+  //     if (englishInputRef.current) {
+  //       englishInputRef.current.focus();
+  //     }
+  //   }, 1500); // Give user time to see the feedback
+  // };
+  
   const handleFrenchSubmit = (e) => {
     if (e) e.preventDefault();
-    
-    // Skip if we've already shown the answer
+  
     if (showFrenchAnswer) return;
-    
+  
     const currentCard = flashcards[currentCardIndex];
     const isCorrect = frenchInput.trim().toLowerCase() === currentCard.french.trim().toLowerCase();
-    
-    console.log("French check:", {
-      input: frenchInput,
-      correct: currentCard.french,
-      isCorrect: isCorrect
-    });
-    
-    // Update states to show feedback
+  
     setIsFrenchCorrect(isCorrect);
     setShowFrenchAnswer(true);
-    
-    // Update stats
+  
     const updatedStats = [...stats];
     if (isCorrect) {
       updatedStats[currentCard.id].frenchCorrect += 1;
@@ -195,14 +223,6 @@ const App = () => {
       updatedStats[currentCard.id].frenchIncorrect += 1;
     }
     setStats(updatedStats);
-    
-    // Move to English input after a short delay
-    setTimeout(() => {
-      setCurrentInputMode('english');
-      if (englishInputRef.current) {
-        englishInputRef.current.focus();
-      }
-    }, 1500); // Give user time to see the feedback
   };
   
   // Handle English input submission
@@ -235,32 +255,29 @@ const App = () => {
     setStats(updatedStats);
   };
   
-  // Move to the next card
   const nextCard = () => {
-    if (currentCardIndex < flashcards.length - 1) {
-      setCurrentCardIndex(currentCardIndex + 1);
-      setFrenchInput('');
-      setEnglishInput('');
-      setShowFrenchAnswer(false);
-      setShowEnglishAnswer(false);
-      setIsFrenchCorrect(null);
-      setIsEnglishCorrect(null);
-      setCurrentInputMode('french');
-      
-      // Focus on the French input
-      setTimeout(() => {
-        if (frenchInputRef.current) {
-          frenchInputRef.current.focus();
-        }
-      }, 100);
-      
-      // Speak the French word
-      speakFrenchWord(flashcards[currentCardIndex + 1].french);
-    } else {
-      setHasCompletedRound(true);
-      saveStats();
-    }
+    const nextIndex = (currentCardIndex + 1) % flashcards.length;  // Wraps to zero at end
+  
+    setCurrentCardIndex(nextIndex);
+    setFrenchInput('');
+    setEnglishInput('');
+    setShowFrenchAnswer(false);
+    setShowEnglishAnswer(false);
+    setIsFrenchCorrect(null);
+    setIsEnglishCorrect(null);
+    setCurrentInputMode('french');
+  
+    // Focus on the French input again
+    setTimeout(() => {
+      if (frenchInputRef.current) {
+        frenchInputRef.current.focus();
+      }
+    }, 100);
+  
+    // Speak the next French word
+    speakFrenchWord(flashcards[nextIndex].french);
   };
+  
   
   // Save stats to a CSV file
   const saveStats = () => {
@@ -500,24 +517,59 @@ const App = () => {
     setShowPerformanceGraph(true);
   };
 
-  // Then, your useEffects come afterward
+//   // Then, your useEffects come afterward
+// useEffect(() => {
+//   const handleEnterKey = (event) => {
+//     if (event.key === 'Enter') {
+//       if (showEnglishAnswer && !hasCompletedRound) {
+//         event.preventDefault();
+//         nextCard();
+//       } else if (hasCompletedRound) {
+//         event.preventDefault();
+//         showGraph();
+//       }
+//     }
+//   };
+
+//   window.addEventListener('keydown', handleEnterKey);
+
+//   return () => window.removeEventListener('keydown', handleEnterKey);
+// }, [showEnglishAnswer, hasCompletedRound, nextCard, showGraph]);
+
 useEffect(() => {
   const handleEnterKey = (event) => {
     if (event.key === 'Enter') {
-      if (showEnglishAnswer && !hasCompletedRound) {
-        event.preventDefault();
-        nextCard();
-      } else if (hasCompletedRound) {
-        event.preventDefault();
-        showGraph();
+      event.preventDefault();
+
+      if (currentInputMode === 'french') {
+        if (!showFrenchAnswer) {
+          handleFrenchSubmit();  // Check French
+        } else {
+          // Move explicitly to English
+          setCurrentInputMode('english');
+          setTimeout(() => englishInputRef.current && englishInputRef.current.focus(), 100);
+        }
+      } else if (currentInputMode === 'english') {
+        if (!showEnglishAnswer) {
+          handleEnglishSubmit();  // Check English
+        } else {
+          nextCard();  // Move to next card after English
+        }
       }
     }
   };
 
   window.addEventListener('keydown', handleEnterKey);
-
   return () => window.removeEventListener('keydown', handleEnterKey);
-}, [showEnglishAnswer, hasCompletedRound, nextCard, showGraph]);
+}, [
+  currentInputMode,
+  showFrenchAnswer,
+  showEnglishAnswer,
+  handleFrenchSubmit,
+  handleEnglishSubmit,
+  nextCard,
+]);
+
   
   // Go back to home screen
   const goToHomeScreen = () => {
@@ -844,6 +896,20 @@ useEffect(() => {
                             <p className="font-bold mt-1 text-lg">{flashcards[currentCardIndex].french}</p>
                           </div>
                         )}
+                        {showFrenchAnswer && currentInputMode === 'french' && (
+  <button
+    onClick={() => {
+      setCurrentInputMode('english');
+      setTimeout(() => {
+        if (englishInputRef.current) englishInputRef.current.focus();
+      }, 100);
+    }}
+    className="mt-4 bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded-md transition duration-200"
+  >
+    To Translation →
+  </button>
+)}
+
                       </div>
                     ) : (
                       <div>
