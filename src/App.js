@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Papa from 'papaparse';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import Plot from 'react-plotly.js';
+
 import './App.css';
 
 const App = () => {
@@ -439,6 +441,34 @@ const App = () => {
     return htmlContent;
   };
   
+  const getBubbleChartData = () => {
+    const filteredStats = stats.filter(
+      (stat) =>
+        stat.frenchCorrect +
+        stat.frenchIncorrect +
+        stat.englishCorrect +
+        stat.englishIncorrect >
+        0
+    );
+  
+    const frenchData = filteredStats.map((stat) => ({
+      word: stat.french,
+      translation: stat.english,
+      totalAttempts: stat.frenchCorrect + stat.frenchIncorrect,
+      netScore: stat.frenchCorrect - stat.frenchIncorrect,
+    }));
+  
+    const englishData = filteredStats.map((stat) => ({
+      word: stat.english,
+      translation: stat.french,
+      totalAttempts: stat.englishCorrect + stat.englishIncorrect,
+      netScore: stat.englishCorrect - stat.englishIncorrect,
+    }));
+  
+    return { frenchData, englishData };
+  };
+  
+  
   // Prepare performance data for the chart
   const getPerformanceData = () => {
     return stats
@@ -576,7 +606,71 @@ useEffect(() => {
                     </ResponsiveContainer>
                   </div>
                 </div>
-                
+                <div className="w-full h-[800px] my-8 bg-white p-4 rounded-lg shadow-md">
+  <h3 className="text-xl font-semibold mb-4">Attempts per Word (French & English)</h3>
+  <Plot
+    data={[
+      {
+        x: getBubbleChartData().frenchData.map((d) => d.word),
+        y: getBubbleChartData().frenchData.map((d) => d.netScore),
+        text: getBubbleChartData().frenchData.map(
+          (d) =>
+            `${d.word} (${d.translation})<br>Attempts: ${d.totalAttempts}<br>Net Score: ${d.netScore}`
+        ),
+        mode: 'markers',
+        marker: {
+          size: getBubbleChartData().frenchData.map((d) => d.totalAttempts * 5),
+          color: getBubbleChartData().frenchData.map((d) => d.totalAttempts),
+          colorscale: 'Portland',
+          showscale: true,
+          colorbar: { title: 'Attempts (French)' },
+          opacity: 0.8,
+          line: { width: 1, color: '#444' },
+        },
+        name: 'French Guesses',
+        xaxis: 'x1',
+        yaxis: 'y1',
+      },
+      {
+        x: getBubbleChartData().englishData.map((d) => d.word),
+        y: getBubbleChartData().englishData.map((d) => d.netScore),
+        text: getBubbleChartData().englishData.map(
+          (d) =>
+            `${d.word} (${d.translation})<br>Attempts: ${d.totalAttempts}<br>Net Score: ${d.netScore}`
+        ),
+        mode: 'markers',
+        marker: {
+          size: getBubbleChartData().englishData.map((d) => d.totalAttempts * 5),
+          color: getBubbleChartData().englishData.map((d) => d.totalAttempts),
+          colorscale: 'Jet',
+          showscale: true,
+          colorbar: { title: 'Attempts (English)' },
+          opacity: 0.8,
+          line: { width: 1, color: '#444' },
+        },
+        name: 'English Guesses',
+        xaxis: 'x2',
+        yaxis: 'y2',
+      },
+    ]}
+    layout={{
+      grid: { rows: 2, columns: 1, pattern: 'independent', roworder: 'top to bottom' },
+      xaxis: { title: 'French Words', tickangle: -45 },
+      yaxis: { title: 'Net Score (French guesses)' },
+      xaxis2: { title: 'English Words', tickangle: -45 },
+      yaxis2: { title: 'Net Score (English guesses)' },
+      margin: { l: 60, r: 20, t: 60, b: 120 },
+      hovermode: 'closest',
+      height: 800,
+      title: 'Net Score per Word (French & English guesses)',
+    }}
+    style={{ width: '100%', height: '100%' }}
+    useResizeHandler
+  />
+</div>
+
+
+
                 <div className="mt-6">
                   <h3 className="text-lg font-medium text-gray-700 mb-3">Summary Statistics</h3>
                   <div className="grid grid-cols-2 gap-4">
@@ -812,7 +906,11 @@ useEffect(() => {
           </div>
         </div>
       </div>
+
     </div>
+  
+  
+
   );
 };
 
